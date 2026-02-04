@@ -210,10 +210,14 @@ function render(query = '') {
     productsGrid.innerHTML = '';
     highlightsGrid.innerHTML = '';
 
-    const filtered = products.filter(p => 
-        p.produto.toLowerCase().includes(query.toLowerCase()) || 
-        p.codigo.includes(query)
-    );
+    // BUSCA POR PALAVRAS-CHAVE
+    const queryWords = query.toLowerCase().split(' ').filter(w => w.length > 0);
+    
+    const filtered = products.filter(p => {
+        if (queryWords.length === 0) return true;
+        const text = (p.codigo + ' ' + p.produto).toLowerCase();
+        return queryWords.every(word => text.includes(word));
+    });
 
     filtered.sort((a, b) => a.produto.localeCompare(b.produto));
 
@@ -250,19 +254,33 @@ function createCard(p) {
 
 function rebindCardEvents() {
     document.querySelectorAll('.product-card').forEach(card => {
-        card.onclick = () => openActionModal(card.dataset.id);
+        // CLIQUE ESQUERDO: Abre direto o formulário de impressão
+        card.onclick = (e) => {
+            selectedProduct = products.find(p => p.codigo === card.dataset.id);
+            if (!selectedProduct) return;
+            openPrintForm();
+        };
+
+        // CLIQUE DIREITO: Abre o menu de gestão (Editar/Excluir/Ver Código)
         card.oncontextmenu = (e) => {
             e.preventDefault();
-            toggleHighlight(card.dataset.id);
+            selectedProduct = products.find(p => p.codigo === card.dataset.id);
+            if (!selectedProduct) return;
+            openActionModal(selectedProduct.codigo);
         };
     });
 }
 
 // MODAIS
-function openActionModal(id) {
-    selectedProduct = products.find(p => p.codigo === id);
-    if (!selectedProduct) return;
+function openPrintForm() {
+    closeModal();
+    document.getElementById('preview-code').textContent = selectedProduct.codigo;
+    document.getElementById('preview-name').textContent = selectedProduct.produto;
+    modalForm.classList.remove('hidden');
+}
 
+function openActionModal(id) {
+    closeModal();
     document.getElementById('preview-code').textContent = selectedProduct.codigo;
     document.getElementById('preview-name').textContent = selectedProduct.produto;
     modalAction.classList.remove('hidden');
@@ -283,11 +301,7 @@ function handleSaveProduct() {
     }
 
     const existingIndex = products.findIndex(p => p.codigo === code);
-    if (existingIndex > -1 && (!selectedProduct || selectedProduct.codigo !== code)) {
-        showToast("Este código já existe", "error");
-        return;
-    }
-
+    
     if (selectedProduct && products.some(p => p.codigo === selectedProduct.codigo)) {
         // Editando
         const idx = products.findIndex(p => p.codigo === selectedProduct.codigo);
@@ -295,6 +309,10 @@ function handleSaveProduct() {
         showToast("Produto atualizado", "success");
     } else {
         // Novo
+        if (existingIndex > -1) {
+            showToast("Este código já existe", "error");
+            return;
+        }
         products.push({ codigo: code, produto: name });
         showToast("Produto cadastrado", "success");
     }
@@ -391,8 +409,7 @@ function setupEventListeners() {
     });
 
     document.getElementById('btn-open-form').onclick = () => {
-        closeModal();
-        modalForm.classList.remove('hidden');
+        openPrintForm();
     };
 
     document.getElementById('btn-show-code').onclick = () => {
