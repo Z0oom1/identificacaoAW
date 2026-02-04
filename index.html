@@ -13,8 +13,11 @@
 <body class="theme-light">
 
     <div class="app-shell no-print">
+        <!-- Botão Mobile Menu -->
+        <button id="mobile-menu-toggle" class="mobile-only"><i class="ri-menu-line"></i></button>
+
         <!-- Sidebar Moderna -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="app-sidebar">
             <div class="sidebar-header">
                 <img src="logo.png" alt="Wilson Logo" class="brand-logo">
                 <div class="brand-status">
@@ -41,13 +44,13 @@
                 </a>
                 <a href="#" class="nav-item" id="sidebar-export-btn">
                     <i class="ri-download-2-line"></i>
-                    <span>Exportar Dados</span>
+                    <span>Exportar Backup</span>
                 </a>
 
                 <div class="nav-section">Preferências</div>
                 <div class="theme-toggle-container">
-                    <button class="theme-btn active" id="theme-light"><i class="ri-sun-line"></i></button>
-                    <button class="theme-btn" id="theme-dark"><i class="ri-moon-line"></i></button>
+                    <button class="theme-btn active" id="theme-light" title="Modo Claro"><i class="ri-sun-line"></i></button>
+                    <button class="theme-btn" id="theme-dark" title="Modo Escuro"><i class="ri-moon-line"></i></button>
                 </div>
             </nav>
 
@@ -67,7 +70,7 @@
             <header class="content-header">
                 <div class="header-search">
                     <i class="ri-search-line"></i>
-                    <input type="text" id="searchInput" placeholder="Busque por código ou descrição...">
+                    <input type="text" id="searchInput" placeholder="Busque por código ou descrição..." autocomplete="off">
                     <span class="search-shortcut">/</span>
                 </div>
                 
@@ -254,9 +257,7 @@
             </div>
         </div>
         <div class="sheet-viewport">
-            <!-- Conteúdo injetado pelo print.css original -->
             <div class="official-sheet">
-                <!-- Estrutura mantida conforme solicitado -->
                 <div class="tbl-row header-row">
                     <div class="tbl-cell logo-cell"><img src="logo.png" alt="Wilson"></div>
                     <div class="tbl-cell title-cell">SISTEMA DE GESTÃO DA QUALIDADE E SEGURANÇA DE ALIMENTOS</div>

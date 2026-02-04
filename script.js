@@ -1,5 +1,11 @@
-// DADOS (Lista única de produtos carregada inicialmente)
-let rawData = [
+// ESTADO GLOBAL DO SISTEMA
+let products = [];
+let highlights = JSON.parse(localStorage.getItem('wilson_highlights')) || [];
+let selectedProduct = null;
+let currentView = 'catalog';
+
+// DADOS DE PRODUTOS (Lista inicial única)
+const rawData = [
     { codigo: '1000340', produto: 'RÓTULO MANGA BARBECUE GL 3,6 KG' },
     { codigo: '10004', produto: 'TOMATE IN-NATURA' },
     { codigo: '190064', produto: 'TAMPA FLIPTOP FECH. VERMELHA SELO PET' },
@@ -161,29 +167,19 @@ let rawData = [
     { codigo: '50007', produto: 'AÇUCAR REFINADO' }
 ];
 
-// Estado da Aplicação
-let products = [];
-let highlights = JSON.parse(localStorage.getItem('highlights_aw')) || [];
-let selectedProduct = null;
-let editingProductIndex = -1;
-
-// Elementos DOM
+// ELEMENTOS DOM
 const productsGrid = document.getElementById('productsGrid');
 const highlightsGrid = document.getElementById('highlightsGrid');
 const searchInput = document.getElementById('searchInput');
-const filterContainer = document.getElementById('filterContainer');
 const modalAction = document.getElementById('modal-action');
 const modalForm = document.getElementById('modal-form');
 const modalCode = document.getElementById('modal-code');
-const modalContext = document.getElementById('modal-context');
 const modalProductForm = document.getElementById('modal-product-form');
-const modalConfirmDelete = document.getElementById('modal-confirm-delete');
 const printArea = document.getElementById('print-area');
 
-// Inicialização
+// INICIALIZAÇÃO
 function init() {
-    // Carregar do localStorage se existir, senão usar rawData
-    const savedProducts = localStorage.getItem('products_aw');
+    const savedProducts = localStorage.getItem('wilson_db');
     if (savedProducts) {
         products = JSON.parse(savedProducts);
     } else {
@@ -191,70 +187,78 @@ function init() {
         saveToStorage();
     }
     
-    render();
     setupEventListeners();
     updateStats();
+    render();
+    showToast("Sistema Wilson ID Pro Inicializado", "success");
 }
 
 function saveToStorage() {
-    localStorage.setItem('products_aw', JSON.stringify(products));
-    localStorage.setItem('highlights_aw', JSON.stringify(highlights));
+    localStorage.setItem('wilson_db', JSON.stringify(products));
+    localStorage.setItem('wilson_highlights', JSON.stringify(highlights));
     updateStats();
 }
 
 function updateStats() {
-    document.getElementById('total-products').textContent = products.length;
-    document.getElementById('total-highlights').textContent = highlights.length;
+    document.getElementById('stat-total').textContent = products.length;
+    document.getElementById('badge-highlights').textContent = `${highlights.length} itens`;
+    document.getElementById('stat-session').textContent = sessionStorage.getItem('print_count') || 0;
 }
 
-// Renderização
-function render(filter = 'all', query = '') {
+// RENDERIZAÇÃO
+function render(query = '') {
     productsGrid.innerHTML = '';
     highlightsGrid.innerHTML = '';
 
-    const filtered = products.filter(p => {
-        const matchesQuery = p.produto.toLowerCase().includes(query.toLowerCase()) || p.codigo.includes(query);
-        if (filter === 'all') return matchesQuery;
-        return matchesQuery; // Por enquanto só temos 'all', mas expansível
-    });
+    const filtered = products.filter(p => 
+        p.produto.toLowerCase().includes(query.toLowerCase()) || 
+        p.codigo.includes(query)
+    );
 
-    // Ordenar por nome
     filtered.sort((a, b) => a.produto.localeCompare(b.produto));
 
     filtered.forEach(p => {
-        const card = createProductCard(p);
-        
+        const card = createCard(p);
         if (highlights.includes(p.codigo)) {
             highlightsGrid.appendChild(card.cloneNode(true));
         }
-        productsGrid.appendChild(card);
+        if (currentView === 'catalog' || (currentView === 'favorites' && highlights.includes(p.codigo))) {
+            productsGrid.appendChild(card);
+        }
     });
 
-    // Re-vincular eventos após render
-    document.querySelectorAll('.p-card').forEach(card => {
-        card.onclick = () => openActionModal(card.dataset.id);
-        card.oncontextmenu = (e) => {
-            e.preventDefault();
-            openContextMenu(card.dataset.id);
-        };
-    });
+    const highlightsSection = document.getElementById('section-highlights');
+    if (highlights.length === 0 || currentView === 'favorites' || query !== '') {
+        highlightsSection.classList.add('hidden');
+    } else {
+        highlightsSection.classList.remove('hidden');
+    }
+
+    rebindCardEvents();
 }
 
-function createProductCard(p) {
+function createCard(p) {
     const div = document.createElement('div');
-    div.className = 'p-card zoom-anim';
+    div.className = 'product-card zoom-anim';
     div.dataset.id = p.codigo;
     div.innerHTML = `
-        <span class="p-badge">${p.codigo}</span>
-        <p class="p-name">${p.produto}</p>
-        <div class="p-card-footer">
-            <i class="ri-more-2-fill" style="color: var(--ui-text-light)"></i>
-        </div>
+        <span class="card-code">${p.codigo}</span>
+        <h3 class="card-name">${p.produto}</h3>
     `;
     return div;
 }
 
-// Modais e Ações
+function rebindCardEvents() {
+    document.querySelectorAll('.product-card').forEach(card => {
+        card.onclick = () => openActionModal(card.dataset.id);
+        card.oncontextmenu = (e) => {
+            e.preventDefault();
+            toggleHighlight(card.dataset.id);
+        };
+    });
+}
+
+// MODAIS
 function openActionModal(id) {
     selectedProduct = products.find(p => p.codigo === id);
     if (!selectedProduct) return;
@@ -264,155 +268,173 @@ function openActionModal(id) {
     modalAction.classList.remove('hidden');
 }
 
-function openContextMenu(id) {
-    selectedProduct = products.find(p => p.codigo === id);
+function closeModal() {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+}
+
+// CRUD
+function handleSaveProduct() {
+    const code = document.getElementById('prod-code').value.trim();
+    const name = document.getElementById('prod-name').value.trim().toUpperCase();
+
+    if (!code || !name) {
+        showToast("Preencha todos os campos", "error");
+        return;
+    }
+
+    const existingIndex = products.findIndex(p => p.codigo === code);
+    if (existingIndex > -1 && (!selectedProduct || selectedProduct.codigo !== code)) {
+        showToast("Este código já existe", "error");
+        return;
+    }
+
+    if (selectedProduct && products.some(p => p.codigo === selectedProduct.codigo)) {
+        // Editando
+        const idx = products.findIndex(p => p.codigo === selectedProduct.codigo);
+        products[idx] = { codigo: code, produto: name };
+        showToast("Produto atualizado", "success");
+    } else {
+        // Novo
+        products.push({ codigo: code, produto: name });
+        showToast("Produto cadastrado", "success");
+    }
+
+    saveToStorage();
+    render();
+    closeModal();
+}
+
+function handleDeleteProduct() {
     if (!selectedProduct) return;
-
-    document.getElementById('ctx-prod-name').textContent = selectedProduct.produto;
-    const isHigh = highlights.includes(id);
-    document.getElementById('ctx-text').textContent = isHigh ? "Remover dos Destaques" : "Adicionar aos Destaques";
-    document.getElementById('ctx-icon').innerHTML = isHigh ? '<i class="ri-star-line"></i>' : '<i class="ri-star-fill"></i>';
-    
-    modalContext.classList.remove('hidden');
+    if (confirm(`Excluir permanentemente: ${selectedProduct.produto}?`)) {
+        products = products.filter(p => p.codigo !== selectedProduct.codigo);
+        highlights = highlights.filter(h => h !== selectedProduct.codigo);
+        saveToStorage();
+        render();
+        closeModal();
+        showToast("Produto removido");
+    }
 }
 
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    const icon = type === 'success' ? 'ri-checkbox-circle-line' : (type === 'error' ? 'ri-error-warning-line' : 'ri-information-line');
-    toast.innerHTML = `<i class="${icon}"></i> <span>${message}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+function toggleHighlight(id) {
+    if (highlights.includes(id)) {
+        highlights = highlights.filter(h => h !== id);
+        showToast("Removido dos destaques");
+    } else {
+        highlights.push(id);
+        showToast("Adicionado aos destaques", "success");
+    }
+    saveToStorage();
+    render();
 }
 
-// Event Listeners
+// EVENT LISTENERS
 function setupEventListeners() {
-    // Busca
-    searchInput.oninput = (e) => render('all', e.target.value);
+    // Busca e Atalhos
+    searchInput.oninput = (e) => render(e.target.value);
+    window.onkeydown = (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+            e.preventDefault();
+            searchInput.focus();
+        }
+        if (e.key === 'Escape') closeModal();
+    };
 
-    // Fechar modais
-    document.querySelectorAll('.close-btn, .btn-outline').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+    // Sidebar e Navegação
+    document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+        item.onclick = (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            currentView = item.dataset.view;
+            render();
+            if (window.innerWidth <= 768) document.getElementById('app-sidebar').classList.remove('open');
         };
     });
 
-    // Ações do Produto
-    document.getElementById('btn-show-code').onclick = () => {
-        modalAction.classList.add('hidden');
-        document.getElementById('display-code').textContent = selectedProduct.codigo;
-        document.getElementById('display-name').textContent = selectedProduct.produto;
-        modalCode.classList.remove('hidden');
+    document.getElementById('mobile-menu-toggle').onclick = () => {
+        document.getElementById('app-sidebar').classList.toggle('open');
     };
 
-    document.getElementById('btn-open-form').onclick = () => {
-        modalAction.classList.add('hidden');
-        modalForm.classList.remove('hidden');
-    };
-
-    document.getElementById('btn-copy-code').onclick = () => {
-        navigator.clipboard.writeText(selectedProduct.codigo);
-        showToast("Código copiado!", "success");
-    };
-
-    // CRUD: Adicionar / Editar
-    document.getElementById('btn-add-product').onclick = () => {
-        editingProductIndex = -1;
-        document.getElementById('product-modal-title').textContent = "Novo Produto";
+    document.getElementById('sidebar-add-btn').onclick = () => {
+        selectedProduct = null;
+        document.getElementById('product-modal-title').textContent = "Novo Material";
         document.getElementById('prod-code').value = "";
         document.getElementById('prod-name').value = "";
         modalProductForm.classList.remove('hidden');
     };
 
+    document.getElementById('sidebar-export-btn').onclick = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(products));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = "backup_wilson_id.json";
+        a.click();
+        showToast("Backup exportado");
+    };
+
+    // Temas
+    document.getElementById('theme-light').onclick = () => {
+        document.body.className = 'theme-light';
+        document.getElementById('theme-light').classList.add('active');
+        document.getElementById('theme-dark').classList.remove('active');
+    };
+    document.getElementById('theme-dark').onclick = () => {
+        document.body.className = 'theme-dark';
+        document.getElementById('theme-dark').classList.add('active');
+        document.getElementById('theme-light').classList.remove('active');
+    };
+
+    // Ações de Modal
+    document.querySelectorAll('.close-modal, .close-modal-fs').forEach(btn => {
+        btn.onclick = closeModal;
+    });
+
+    document.getElementById('btn-open-form').onclick = () => {
+        closeModal();
+        modalForm.classList.remove('hidden');
+    };
+
+    document.getElementById('btn-show-code').onclick = () => {
+        closeModal();
+        document.getElementById('display-code-fs').textContent = selectedProduct.codigo;
+        document.getElementById('display-name-fs').textContent = selectedProduct.produto;
+        modalCode.classList.remove('hidden');
+    };
+
     document.getElementById('btn-edit-product-trigger').onclick = () => {
-        editingProductIndex = products.findIndex(p => p.codigo === selectedProduct.codigo);
-        document.getElementById('product-modal-title').textContent = "Editar Produto";
+        document.getElementById('product-modal-title').textContent = "Editar Material";
         document.getElementById('prod-code').value = selectedProduct.codigo;
         document.getElementById('prod-name').value = selectedProduct.produto;
-        modalAction.classList.add('hidden');
+        closeModal();
         modalProductForm.classList.remove('hidden');
     };
 
-    document.getElementById('btn-save-product').onclick = () => {
-        const code = document.getElementById('prod-code').value.trim();
-        const name = document.getElementById('prod-name').value.trim().toUpperCase();
-
-        if (!code || !name) {
-            showToast("Preencha todos os campos", "error");
-            return;
-        }
-
-        if (editingProductIndex === -1) {
-            // Adicionar
-            if (products.some(p => p.codigo === code)) {
-                showToast("Este código já existe", "error");
-                return;
-            }
-            products.push({ codigo: code, produto: name });
-            showToast("Produto adicionado!", "success");
-        } else {
-            // Editar
-            products[editingProductIndex] = { codigo: code, produto: name };
-            showToast("Produto atualizado!", "success");
-        }
-
-        saveToStorage();
-        render();
-        modalProductForm.classList.add('hidden');
+    document.getElementById('btn-delete-product-trigger').onclick = handleDeleteProduct;
+    document.getElementById('btn-save-product').onclick = handleSaveProduct;
+    document.getElementById('btn-copy-code').onclick = () => {
+        navigator.clipboard.writeText(selectedProduct.codigo);
+        showToast("Código copiado", "success");
     };
 
-    // CRUD: Excluir
-    document.getElementById('btn-delete-product-trigger').onclick = () => {
-        modalAction.classList.add('hidden');
-        modalConfirmDelete.classList.remove('hidden');
-    };
-
-    document.getElementById('btn-confirm-delete').onclick = () => {
-        products = products.filter(p => p.codigo !== selectedProduct.codigo);
-        highlights = highlights.filter(h => h !== selectedProduct.codigo);
-        saveToStorage();
-        render();
-        modalConfirmDelete.classList.add('hidden');
-        showToast("Produto removido", "info");
-    };
-
-    // Destaques
-    document.getElementById('btn-toggle-highlight').onclick = () => {
-        const id = selectedProduct.codigo;
-        if (highlights.includes(id)) {
-            highlights = highlights.filter(h => h !== id);
-            showToast("Removido dos destaques");
-        } else {
-            highlights.push(id);
-            showToast("Adicionado aos destaques", "success");
-        }
-        saveToStorage();
-        render();
-        modalContext.classList.add('hidden');
-    };
-
-    // Geração de Impressão
+    // Impressão
     document.getElementById('btn-generate-print').onclick = generatePrint;
     document.getElementById('close-print').onclick = () => printArea.classList.add('hidden');
 }
 
-function getDayOfYear() {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const diff = now - start;
-    const oneDay = 1000 * 60 * 60 * 24;
-    return Math.floor(diff / oneDay);
-}
-
+// IMPRESSÃO
 function generatePrint() {
     const opType = document.querySelector('input[name="op-type"]:checked').value;
     const nf = document.getElementById('input-nf').value || "---";
     const qty = document.getElementById('input-qty').value || "---";
     const lote = document.getElementById('input-lote').value || "---";
     const validadeRaw = document.getElementById('input-validade').value;
+    
     let valFormatted = "00/00/0000";
-    if(validadeRaw) { const p = validadeRaw.split('-'); valFormatted = `${p[2]}/${p[1]}/${p[0]}`; }
+    if(validadeRaw) { 
+        const p = validadeRaw.split('-'); 
+        valFormatted = `${p[2]}/${p[1]}/${p[0]}`; 
+    }
 
     document.getElementById('print-date').textContent = new Date().toLocaleDateString('pt-BR');
     document.getElementById('print-code').textContent = selectedProduct.codigo;
@@ -426,10 +448,21 @@ function generatePrint() {
     document.getElementById('box-rec').classList.toggle('checked', opType === 'recebimento');
     document.getElementById('box-dev').classList.toggle('checked', opType === 'devolucao');
 
-    modalForm.classList.add('hidden'); 
+    closeModal();
     printArea.classList.remove('hidden');
+    
+    let count = parseInt(sessionStorage.getItem('print_count') || 0) + 1;
+    sessionStorage.setItem('print_count', count);
+    updateStats();
 
     setTimeout(adjustProductFontSize, 10);
+}
+
+function getDayOfYear() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now - start;
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
 function adjustProductFontSize() {
@@ -440,14 +473,29 @@ function adjustProductFontSize() {
 
     let size = 48;
     productEl.style.fontSize = size + "pt";
-    const maxWidth = container.clientWidth - 30; 
-    while (wrapper.scrollWidth > maxWidth && size > 18) {
+    const maxWidth = container.clientWidth - 40; 
+    while (wrapper.scrollWidth > maxWidth && size > 16) {
         size -= 1;
         productEl.style.fontSize = size + "pt";
     }
 }
 
-// Lógica de Movimentação 360° e Zoom (Mantida do original conforme solicitado)
+// TOAST
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icon = type === 'success' ? 'ri-checkbox-circle-fill' : (type === 'error' ? 'ri-error-warning-fill' : 'ri-information-fill');
+    toast.innerHTML = `<i class="${icon}"></i> <span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// LÓGICA 3D (Mantida)
 const sheet = document.querySelector('.sheet-viewport');
 const overlay = document.querySelector('.print-overlay');
 let isDragging = false;
@@ -475,7 +523,6 @@ overlay.addEventListener('mousedown', (e) => {
     if (e.target === overlay || e.target === sheet) {
         isDragging = true;
         startX = e.clientX; startY = e.clientY;
-        document.body.style.userSelect = 'none';
         if (sheet) sheet.style.transition = "none";
         clearTimeout(resetTimer);
     }
@@ -494,7 +541,6 @@ window.addEventListener('mousemove', (e) => {
 window.addEventListener('mouseup', () => {
     if (isDragging) {
         isDragging = false;
-        document.body.style.userSelect = 'auto';
         clearTimeout(resetTimer);
         resetTimer = setTimeout(() => {
             if (sheet) {
@@ -513,5 +559,4 @@ overlay.addEventListener('wheel', (e) => {
     applyTransform();
 }, { passive: false });
 
-// Iniciar app
 init();
