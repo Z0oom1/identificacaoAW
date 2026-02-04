@@ -5,7 +5,8 @@ let selectedProduct = null;
 let currentView = 'catalog';
 let currentFilter = 'all';
 
-// URL do servidor de persistência (ajustar conforme necessário)
+// URL do servidor de persistência (ajustar conforme necessário para seu ambiente web)
+// Se estiver rodando localmente, use 'http://localhost:3001/data'
 const API_URL = 'http://localhost:3001/data';
 
 // ELEMENTOS DOM
@@ -21,14 +22,30 @@ const filterContainer = document.getElementById('filterContainer');
 
 // INICIALIZAÇÃO
 async function init() {
-    await loadData();
-    setupEventListeners();
+    // 1. Tenta carregar do LocalStorage primeiro (cache rápido)
+    const localDb = localStorage.getItem('wilson_db_cache');
+    if (localDb) {
+        const data = JSON.parse(localDb);
+        products = data.products;
+        highlights = data.highlights;
+    } else if (typeof initialData !== 'undefined') {
+        // 2. Se não tiver cache, usa os dados iniciais do data.js
+        products = initialData.products;
+        highlights = initialData.highlights;
+    }
+
+    // Renderiza o que temos para não deixar a tela vazia
     setupFilters();
-    updateStats();
     render();
+    updateStats();
+
+    // 3. Tenta sincronizar com o servidor remoto
+    await loadData();
     
-    // Polling para atualização em tempo real (a cada 3 segundos)
-    setInterval(loadData, 3000);
+    setupEventListeners();
+    
+    // Polling para atualização em tempo real (a cada 5 segundos)
+    setInterval(loadData, 5000);
     
     showToast("Sistema Wilson ID Pro Inicializado", "success");
 }
@@ -49,26 +66,34 @@ async function loadData() {
                     produto: p.produto.replace(/CAIXA/gi, 'CX')
                 }));
                 highlights = data.highlights;
+                
+                // Atualiza o cache local
+                localStorage.setItem('wilson_db_cache', JSON.stringify({ products, highlights }));
+                
                 render();
                 updateStats();
             }
         }
     } catch (e) {
-        console.error("Erro ao carregar dados remotos:", e);
+        console.warn("Servidor remoto offline. Usando dados locais.");
     }
 }
 
 async function saveData() {
+    // Sempre salva no cache local primeiro
+    localStorage.setItem('wilson_db_cache', JSON.stringify({ products, highlights }));
+    updateStats();
+
+    // Tenta salvar no servidor remoto
     try {
         await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ products, highlights })
         });
-        updateStats();
     } catch (e) {
         console.error("Erro ao salvar dados remotos:", e);
-        showToast("Erro ao sincronizar dados", "error");
+        showToast("Salvo localmente (Servidor Offline)", "info");
     }
 }
 
@@ -110,13 +135,11 @@ function render(query = '') {
     const queryWords = query.toLowerCase().split(' ').filter(w => w.length > 0);
     
     let filtered = products.filter(p => {
-        // Filtro de busca
         const text = (p.codigo + ' ' + p.produto).toLowerCase();
         const matchesQuery = queryWords.length === 0 || queryWords.every(word => text.includes(word));
         
         if (!matchesQuery) return false;
 
-        // Filtro de categoria
         if (currentFilter === 'all') return true;
         if (currentFilter === 'cx') return p.produto.includes('CX');
         if (currentFilter === 'frascos') return p.produto.includes('FRASCO');
@@ -129,7 +152,6 @@ function render(query = '') {
 
     filtered.sort((a, b) => a.produto.localeCompare(b.produto));
 
-    // Renderiza todos os produtos sem limite
     filtered.forEach(p => {
         const card = createCard(p);
         if (highlights.includes(p.codigo)) {
@@ -175,8 +197,6 @@ function rebindCardEvents() {
             e.preventDefault();
             selectedProduct = products.find(p => p.codigo === card.dataset.id);
             if (!selectedProduct) return;
-            
-            // Menu de contexto customizado ou modal de ação
             openActionModal(selectedProduct.codigo);
         };
     });
@@ -195,7 +215,6 @@ function openActionModal(id) {
     document.getElementById('preview-code').textContent = selectedProduct.codigo;
     document.getElementById('preview-name').textContent = selectedProduct.produto;
     
-    // Atualiza o botão de destaque no modal
     const isHigh = highlights.includes(selectedProduct.codigo);
     const btnHighlight = document.getElementById('btn-toggle-highlight');
     if (btnHighlight) {
@@ -341,12 +360,14 @@ function setupEventListeners() {
         modalProductForm.classList.remove('hidden');
     };
 
-    // Novo botão de destaque no modal de ação
-    const btnHighlight = document.createElement('button');
-    btnHighlight.id = 'btn-toggle-highlight';
-    btnHighlight.className = 'action-card-v2';
-    btnHighlight.onclick = toggleHighlight;
-    document.querySelector('.action-grid-v2').appendChild(btnHighlight);
+    // Botão de destaque no modal de ação
+    if (!document.getElementById('btn-toggle-highlight')) {
+        const btnHighlight = document.createElement('button');
+        btnHighlight.id = 'btn-toggle-highlight';
+        btnHighlight.className = 'action-card-v2';
+        btnHighlight.onclick = toggleHighlight;
+        document.querySelector('.action-grid-v2').appendChild(btnHighlight);
+    }
 
     document.getElementById('btn-delete-product-trigger').onclick = handleDeleteProduct;
     document.getElementById('btn-save-product').onclick = handleSaveProduct;
