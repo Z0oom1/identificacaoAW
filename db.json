@@ -138,7 +138,7 @@
     },
     {
       "codigo": "50001",
-      "produto": "AÇUCAR CRISTAL 1"
+      "produto": "AÇUCAR CRISTAL"
     },
     {
       "codigo": "1000862",
@@ -7445,5 +7445,7 @@
       "produto": "CRN STR 25KG MODIFICADO 2000 SA"
     }
   ],
-  "highlights": []
+  "highlights": [
+    "50001"
+  ]
 }
