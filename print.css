@@ -164,7 +164,7 @@
 }
 
 .grid-values-row {
-    height: 56mm;
+    height: 40mm;
     display: flex !important;
 }
 
@@ -187,8 +187,17 @@
 }
 
 .grid-values-row .g-val {
-    font-size: 65pt !important;
+    font-size: 50pt ;
     font-weight: bold !important;
+}
+
+.qnt
+{
+    font-size: 85pt !important;
+}
+.lote
+{
+    font-size: 55pt !important;
 }
 
 .footer-info-row {
@@ -236,27 +245,30 @@
 }
 
 .container-produto-ajustavel {
-    display: flex;
     flex-wrap: wrap;
+    display: flex;              /* 👈 chave */
     align-items: center;
     justify-content: center;
-    text-align: center;
     width: 100%;
+    gap: 15px;
+    white-space: normal;
+    text-align: center;
 }
+
 
 .big-code-text {
     font-family: Arial, sans-serif !important;
-    font-size: 60pt !important;
+    font-size: 65pt !important;
     font-weight: bold !important;
     line-height: 1.1;
     display: inline-block;
-    color: #b90016;
+    color: #000000;
 }
 
 .big-prod-text {
     font-family: Arial, sans-serif !important;
-    font-size: 50pt !important;
-    font-weight: bold !important;
+    font-size: 65pt !important;
+    font-weight: bold !important;   
     line-height: 1.1;
     display: inline-block;
     color: #030303;
@@ -404,10 +416,28 @@
 }
 
     .grid-values-row {
-        height: 70mm !important;
+        height: 35mm !important;
     }
 
     .big-content-row {
         height: 72mm !important;
     }
+}
+
+.big-code-text,
+.big-sep {
+    white-space: nowrap;               /* nunca quebra */
+    flex-shrink: 0;                    /* nunca empurra */
+}
+
+.big-prod-text {
+    white-space: normal;
+    font-size: 65pt;
+    font-weight: bold;
+}
+.produto-bloco-fixo {
+    display: inline-flex;
+    white-space: nowrap;   /* nunca quebra */
+    font-size: 65pt;
+    font-weight: bold;
 }
