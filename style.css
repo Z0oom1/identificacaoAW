@@ -712,3 +712,48 @@ body {
     from { transform: scale(0.95); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
 }
+
+/* Estilos de Filtro e Destaques */
+.header-filters {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg-input);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.filter-btn {
+    background: transparent;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    color: var(--text-main);
+}
+
+.filter-btn.active {
+    background: var(--bg-sidebar);
+    color: var(--brand-red);
+    box-shadow: var(--shadow);
+}
+
+.is-highlight {
+    border-color: var(--brand-yellow) !important;
+    background: linear-gradient(to bottom right, var(--bg-card), rgba(255, 199, 44, 0.05)) !important;
+}
+
+.card-star {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    color: var(--brand-yellow);
+    font-size: 1rem;
+}
