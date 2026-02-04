@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IDEN WILSON</title>
+    <title>IDEN WILSON | Profissional</title>
     <link rel="icon" type="image/png" href="Icone.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="print.css">
@@ -21,13 +21,37 @@
                     <p>Almoxarifado & Qualidade</p>
                 </div>
             </div>
-            <div class="header-user"><span>Conferente</span><div class="avatar"><i class="ri-user-3-line"></i></div></div>
+            <div class="header-actions">
+                <button id="btn-add-product" class="btn btn-primary btn-sm">
+                    <i class="ri-add-line"></i> Novo Produto
+                </button>
+                <div class="header-user">
+                    <span>Conferente</span>
+                    <div class="avatar"><i class="ri-user-3-line"></i></div>
+                </div>
+            </div>
         </header>
 
         <main class="content-wrapper">
             <div class="toolbar">
-                <div class="search-field"><i class="ri-search-2-line"></i><input type="text" id="searchInput" placeholder="Pesquisar código ou descrição..."></div>
-                <div class="filter-group" id="filterContainer"><button class="filter-chip active" data-filter="all">Todos</button></div>
+                <div class="search-field">
+                    <i class="ri-search-2-line"></i>
+                    <input type="text" id="searchInput" placeholder="Pesquisar código ou descrição...">
+                </div>
+                <div class="filter-group" id="filterContainer">
+                    <button class="filter-chip active" data-filter="all">Todos</button>
+                </div>
+            </div>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <i class="ri-box-3-line"></i>
+                    <span id="total-products">0</span> Itens no Catálogo
+                </div>
+                <div class="stat-item">
+                    <i class="ri-star-line"></i>
+                    <span id="total-highlights">0</span> Destaques
+                </div>
             </div>
 
             <div class="section-label"><i class="ri-star-s-fill text-yellow"></i> Itens Frequentes (Destaques)</div>
@@ -38,16 +62,78 @@
         </main>
     </div>
 
+    <!-- Modal de Ação (Visualizar/Imprimir) -->
     <div id="modal-action" class="modal-overlay hidden">
         <div class="modal-box zoom-anim">
-            <div class="modal-header"><h3>Selecione a Operação</h3><button class="close-btn"><i class="ri-close-line"></i></button></div>
+            <div class="modal-header">
+                <h3>Opções do Produto</h3>
+                <button class="close-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="product-preview-small">
+                <span id="preview-code" class="p-badge">0000</span>
+                <p id="preview-name" class="p-name">Nome do Produto</p>
+            </div>
             <div class="action-grid">
-                <button id="btn-show-code" class="action-tile"><div class="tile-icon sec"><i class="ri-fullscreen-line"></i></div><span>Visualizar Código</span></button>
-                <button id="btn-open-form" class="action-tile prim"><div class="tile-icon main"><i class="ri-printer-line"></i></div><span>Imprimir Etiqueta</span></button>
+                <button id="btn-show-code" class="action-tile">
+                    <div class="tile-icon sec"><i class="ri-fullscreen-line"></i></div>
+                    <span>Ver Código</span>
+                </button>
+                <button id="btn-open-form" class="action-tile prim">
+                    <div class="tile-icon main"><i class="ri-printer-line"></i></div>
+                    <span>Imprimir</span>
+                </button>
+                <button id="btn-edit-product-trigger" class="action-tile">
+                    <div class="tile-icon info"><i class="ri-edit-line"></i></div>
+                    <span>Editar</span>
+                </button>
+                <button id="btn-delete-product-trigger" class="action-tile danger">
+                    <div class="tile-icon warn"><i class="ri-delete-bin-line"></i></div>
+                    <span>Excluir</span>
+                </button>
             </div>
         </div>
     </div>
 
+    <!-- Modal de Adicionar/Editar Produto -->
+    <div id="modal-product-form" class="modal-overlay hidden">
+        <div class="modal-box zoom-anim">
+            <div class="modal-header">
+                <h3 id="product-modal-title">Novo Produto</h3>
+                <button class="close-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="form-stack">
+                <div class="input-group">
+                    <label>Código do Produto</label>
+                    <input type="text" id="prod-code" placeholder="Ex: 1000123">
+                </div>
+                <div class="input-group">
+                    <label>Descrição / Nome</label>
+                    <input type="text" id="prod-name" placeholder="Ex: RÓTULO MANGA BARBECUE">
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button id="btn-save-product" class="btn btn-primary full">Salvar Produto</button>
+                    <button id="btn-cancel-product" class="btn btn-outline">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div id="modal-confirm-delete" class="modal-overlay hidden">
+        <div class="modal-box zoom-anim" style="max-width: 400px; text-align: center;">
+            <div class="tile-icon warn" style="margin: 0 auto 1.5rem; width: 64px; height: 64px; font-size: 2rem;">
+                <i class="ri-error-warning-line"></i>
+            </div>
+            <h3>Excluir Produto?</h3>
+            <p style="margin: 1rem 0 2rem; color: #666;">Esta ação não pode ser desfeita. O produto será removido permanentemente do catálogo.</p>
+            <div style="display: flex; gap: 1rem;">
+                <button id="btn-confirm-delete" class="btn btn-danger full">Sim, Excluir</button>
+                <button id="btn-cancel-delete" class="btn btn-outline full">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Visualização de Código -->
     <div id="modal-code" class="modal-overlay hidden">
         <div class="modal-box zoom-anim">
             <div class="modal-header"><h3>Visualização</h3><button class="close-btn"><i class="ri-close-line"></i></button></div>
@@ -62,6 +148,7 @@
         </div>
     </div>
 
+    <!-- Modal de Dados da Etiqueta -->
     <div id="modal-form" class="modal-overlay hidden">
         <div class="modal-box zoom-anim">
             <div class="modal-header"><h3>Dados da Identificação</h3><button class="close-btn"><i class="ri-close-line"></i></button></div>
@@ -83,6 +170,7 @@
         </div>
     </div>
 
+    <!-- Modal de Contexto (Destaques) -->
     <div id="modal-context" class="modal-overlay hidden">
         <div class="modal-box zoom-anim">
             <div class="modal-header">
@@ -100,6 +188,7 @@
         </div>
     </div>
 
+    <!-- Área de Impressão -->
     <div id="print-area" class="print-overlay hidden">
         <div class="print-toolbar no-print">
             <div class="toolbar-msg">Visualização de Impressão</div>
@@ -134,9 +223,9 @@
                 <div class="tbl-row grid-header-row"><div class="tbl-cell g-col">QUANTIDADE</div><div class="tbl-cell g-col border-left">LOTE/DATA FAB.</div><div class="tbl-cell g-col border-left">DATA VALIDADE</div></div>
                 <div class="tbl-row grid-values-row"><div class="tbl-cell g-val" id="print-qty" contenteditable="true"></div><div class="tbl-cell g-val border-left" id="print-lote" contenteditable="true"></div><div class="tbl-cell g-val border-left" id="print-validade" contenteditable="true"></div></div>
                 <div class="tbl-row footer-info-row">
-    <div class="tbl-cell nf-cell" style="flex: 1; font-size: 20pt;font-weight: bold;">Nota Fiscal: <span id="print-nf" contenteditable="true"></span></div>
-    <div class="tbl-cell daylot-cell" id="print-day-lot" contenteditable="true" style="width: 150px; border-left: 1px solid black;"></div>
-</div>
+                    <div class="tbl-cell nf-cell" style="flex: 1; font-size: 20pt;font-weight: bold;">Nota Fiscal: <span id="print-nf" contenteditable="true"></span></div>
+                    <div class="tbl-cell daylot-cell" id="print-day-lot" contenteditable="true" style="width: 150px; border-left: 1px solid black;"></div>
+                </div>
                 <div class="tbl-row signatures-row">
                     <div class="tbl-cell sig-block">
                         <div class="sig-line"></div>
@@ -162,6 +251,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Notificações (Toast) -->
+    <div id="toast-container" class="toast-container"></div>
 
     <script src="script.js"></script>
 </body>
