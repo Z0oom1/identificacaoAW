@@ -382,6 +382,13 @@ function setupEventListeners() {
 
 // IMPRESSÃO
 function generatePrint() {
+    const palavras = selectedProduct.produto.split(' ');
+
+// quantas palavras ficam junto do código
+const prefixCount = 2;
+
+    const prefixo = palavras.slice(0, prefixCount).join(' ');
+    const resto = palavras.slice(prefixCount).join(' ');
     const opType = document.querySelector('input[name="op-type"]:checked').value;
     const nf = document.getElementById('input-nf').value || "---";
     const qty = document.getElementById('input-qty').value || "---";
@@ -396,6 +403,8 @@ function generatePrint() {
 
     document.getElementById('print-date').textContent = new Date().toLocaleDateString('pt-BR');
     document.getElementById('print-code').textContent = selectedProduct.codigo;
+    document.getElementById('print-product-prefix').textContent = prefixo;
+    document.getElementById('print-product-rest').textContent = resto;
     document.getElementById('print-product').textContent = selectedProduct.produto;
     document.getElementById('print-qty').textContent = qty;
     document.getElementById('print-lote').textContent = lote;
