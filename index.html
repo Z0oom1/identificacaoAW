@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WILSON ID PRO | Smart Management</title>
+    <title>WILSON | IDENTIFICAÇÃO</title>
     <link rel="icon" type="image/png" href="Icone.png">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="print.css">
 </head>
+
 <body class="theme-light">
 
     <div class="app-shell no-print">
@@ -36,7 +40,7 @@
                     <i class="ri-star-line"></i>
                     <span>Destaques</span>
                 </a>
-                
+
                 <div class="nav-section">Gestão</div>
                 <a href="#" class="nav-item" id="sidebar-add-btn">
                     <i class="ri-add-box-line"></i>
@@ -49,7 +53,8 @@
 
                 <div class="nav-section">Preferências</div>
                 <div class="theme-toggle-container">
-                    <button class="theme-btn active" id="theme-light" title="Modo Claro"><i class="ri-sun-line"></i></button>
+                    <button class="theme-btn active" id="theme-light" title="Modo Claro"><i
+                            class="ri-sun-line"></i></button>
                     <button class="theme-btn" id="theme-dark" title="Modo Escuro"><i class="ri-moon-line"></i></button>
                 </div>
             </nav>
@@ -70,10 +75,11 @@
             <header class="content-header">
                 <div class="header-search">
                     <i class="ri-search-line"></i>
-                    <input type="text" id="searchInput" placeholder="Busque por código ou descrição..." autocomplete="off">
+                    <input type="text" id="searchInput" placeholder="Busque por código ou descrição..."
+                        autocomplete="off">
                     <span class="search-shortcut">/</span>
                 </div>
-                
+
                 <div class="header-stats">
                     <div class="mini-stat">
                         <span class="label">Total Itens</span>
@@ -120,7 +126,7 @@
                 </div>
                 <button class="close-modal"><i class="ri-close-line"></i></button>
             </div>
-            
+
             <div class="action-grid-v2">
                 <button id="btn-open-form" class="action-card-v2 primary">
                     <div class="card-icon"><i class="ri-printer-line"></i></div>
@@ -129,7 +135,7 @@
                         <span>Gerar identificação física</span>
                     </div>
                 </button>
-                
+
                 <button id="btn-show-code" class="action-card-v2">
                     <div class="card-icon"><i class="ri-fullscreen-line"></i></div>
                     <div class="card-info">
@@ -164,7 +170,7 @@
                 <h3>Dados de Identificação</h3>
                 <button class="close-modal"><i class="ri-close-line"></i></button>
             </div>
-            
+
             <div class="smart-form">
                 <div class="form-group-row">
                     <label class="type-selector">
@@ -264,35 +270,76 @@
                     <div class="tbl-cell meta-cell">
                         <div class="meta-item">Emissão: 23/04/2021</div>
                         <div class="meta-item">Revisão: 03</div>
-                        <div class="meta-item border-none">Atualizado em: 21/07/2023</div>
+                        <div class="meta-item border-none">Atualizado em: 04/02/2026</div>
                     </div>
                 </div>
-                <div class="tbl-row subheader-row"><div class="tbl-cell doc-cell">Documento: FORMULÁRIO</div><div class="tbl-cell code-cell">Código: FRM/ALM/DIV/015</div></div>
-                <div class="tbl-row subheader-row border-top-none"><div class="tbl-cell desc-cell">Descrição: IDENTIFICAÇÃO DE MATERIAL</div><div class="tbl-cell page-cell">Página: 1 de 1</div></div>
-                <div class="tbl-row date-row">DATA: <span id="print-date" contenteditable="true" style="font-size: 9pt;"></span></div>
+                <div class="tbl-row subheader-row">
+                    <div class="tbl-cell doc-cell">Documento: FORMULÁRIO</div>
+                    <div class="tbl-cell code-cell">Código: FRM/ALM/DIV/015</div>
+                </div>
+                <div class="tbl-row subheader-row border-top-none">
+                    <div class="tbl-cell desc-cell">Descrição: IDENTIFICAÇÃO DE MATERIAL</div>
+                    <div class="tbl-cell page-cell">Página: 1 de 1</div>
+                </div>
+                <div class="tbl-row date-row">DATA: <span id="print-date" contenteditable="true"
+                        style="font-size: 9pt;"></span></div>
                 <div class="tbl-row section-title-row">CÓDIGO/DESCRIÇÃO MATERIAL</div>
                 <div class="tbl-row big-content-row">
                     <div class="container-produto-ajustavel">
-                        <span id="print-code" class="big-code-text" contenteditable="true"></span>
-                        <span class="big-sep">-</span>
-                        <span id="print-product" class="big-prod-text" contenteditable="true"></span>
+                        <span class="produto-bloco-fixo">
+                            <span id="print-code" class="big-code-text"></span>
+                            <span class="big-sep"> - </span>
+                            <span id="print-product-prefix"></span>
+                        </span>
+                        <span id="print-product-rest" class="big-prod-text"></span>
                     </div>
+
                 </div>
                 <div class="tbl-row checks-row">
-                    <div class="tbl-cell check-cell"><div class="checkbox-box" id="box-rec"></div><span class="check-label">RECEBIMENTO</span></div>
-                    <div class="tbl-cell check-cell border-left"><div class="checkbox-box" id="box-dev"></div><span class="check-label">DEVOLUÇÃO/FÁBRICA</span></div>
+                    <div class="tbl-cell check-cell">
+                        <div class="checkbox-box" id="box-rec"></div><span class="check-label">RECEBIMENTO</span>
+                    </div>
+                    <div class="tbl-cell check-cell border-left">
+                        <div class="checkbox-box" id="box-dev"></div><span class="check-label">DEVOLUÇÃO/FÁBRICA</span>
+                    </div>
                 </div>
-                <div class="tbl-row grid-header-row"><div class="tbl-cell g-col">QUANTIDADE</div><div class="tbl-cell g-col border-left">LOTE/DATA FAB.</div><div class="tbl-cell g-col border-left">DATA VALIDADE</div></div>
-                <div class="tbl-row grid-values-row"><div class="tbl-cell g-val" id="print-qty" contenteditable="true"></div><div class="tbl-cell g-val border-left" id="print-lote" contenteditable="true"></div><div class="tbl-cell g-val border-left" id="print-validade" contenteditable="true"></div></div>
+                <div class="tbl-row grid-header-row">
+                    <div class="tbl-cell g-col">QUANTIDADE</div>
+                    <div class="tbl-cell g-col border-left">LOTE/DATA FAB.</div>
+                    <div class="tbl-cell g-col border-left">DATA VALIDADE</div>
+                </div>
+                <div class="tbl-row grid-values-row">
+                    <div class="tbl-cell g-val qnt" id="print-qty" contenteditable="true"></div>
+                    <div class="tbl-cell g-val border-left lote" id="print-lote" contenteditable="true"></div>
+                    <div class="tbl-cell g-val border-left" id="print-validade" contenteditable="true"></div>
+                </div>
                 <div class="tbl-row footer-info-row">
-                    <div class="tbl-cell nf-cell" style="flex: 1; font-size: 20pt;font-weight: bold;">Nota Fiscal: <span id="print-nf" contenteditable="true"></span></div>
-                    <div class="tbl-cell daylot-cell" id="print-day-lot" contenteditable="true" style="width: 150px; border-left: 1px solid black;"></div>
+                    <div class="tbl-cell nf-cell" style="flex: 1; font-size: 20pt;font-weight: bold;">Nota Fiscal: <span
+                            id="print-nf" contenteditable="true" style="color: rgb(0, 0, 0);"></span></div>
+                    <div class="tbl-cell daylot-cell" id="print-day-lot" contenteditable="true"
+                        style="width: 150px; border-left: 1px solid black;"></div>
                 </div>
                 <div class="tbl-row signatures-row">
-                    <div class="tbl-cell sig-block"><div class="sig-line"></div><div class="sig-label">Resp. Elaboração</div><div class="sig-name">Leonardo Madeira</div></div>
-                    <div class="tbl-cell sig-block border-left"><div class="sig-line"></div><div class="sig-label">Resp. Aprovação</div><div class="sig-name">Edison Nascimento</div></div>
-                    <div class="tbl-cell sig-block border-left"><div class="sig-line"></div><div class="sig-label">Resp. SGQSA</div><div class="sig-name">Fernanda Rodrigues</div></div>
-                    <div class="tbl-cell sig-block border-left"><div class="sig-line"></div><div class="sig-label">Sistema</div><div class="sig-name">Caio Rodrigues</div></div>
+                    <div class="tbl-cell sig-block">
+                        <div class="sig-line"></div>
+                        <div class="sig-label">Resp. Elaboração</div>
+                        <div class="sig-name">Leonardo Madeira</div>
+                    </div>
+                    <div class="tbl-cell sig-block border-left">
+                        <div class="sig-line"></div>
+                        <div class="sig-label">Resp. Aprovação</div>
+                        <div class="sig-name">Edison Nascimento</div>
+                    </div>
+                    <div class="tbl-cell sig-block border-left">
+                        <div class="sig-line"></div>
+                        <div class="sig-label">Resp. SGQSA</div>
+                        <div class="sig-name">Fernanda Rodrigues</div>
+                    </div>
+                    <div class="tbl-cell sig-block border-left">
+                        <div class="sig-line"></div>
+                        <div class="sig-label">Resp. Sistema</div>
+                        <div class="sig-name">Caio Rodrigues</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -304,4 +351,5 @@
     <script src="data.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>
