@@ -354,9 +354,9 @@ body {
 .card-code {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.7rem;
-    color: var(--brand-red);
+    color: rgb(255, 255, 255);
     font-weight: 700;
-    background: var(--brand-red-glow);
+    background: rgb(189, 11, 11);
     padding: 3px 8px;
     border-radius: 6px;
     display: inline-block;
