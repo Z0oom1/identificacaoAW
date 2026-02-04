@@ -24,14 +24,21 @@ async function init() {
     // 1. Tenta carregar do LocalStorage primeiro (cache rápido)
     const localDb = localStorage.getItem('wilson_db_cache');
     if (localDb) {
-        const data = JSON.parse(localDb);
-        products = data.products;
-        highlights = data.highlights;
-    } else if (typeof initialData !== 'undefined') {
-        // 2. Se não tiver cache, usa os dados iniciais do data.js
-        products = initialData.products;
-        highlights = initialData.highlights;
+        try {
+            const data = JSON.parse(localDb);
+            products = data.products || [];
+            highlights = data.highlights || [];
+        } catch (e) {
+            console.error("Erro ao ler LocalStorage:", e);
+            loadInitial();
+        }
+    } else {
+        loadInitial();
     }
+
+    // Se ainda estiver vazio após tentar carregar inicial, garante que seja um array
+    if (!products) products = [];
+    if (!highlights) highlights = [];
 
     // Renderiza o que temos para não deixar a tela vazia
     setupFilters();
@@ -43,6 +50,13 @@ async function init() {
     setupEventListeners();
     
     showToast("Sistema Wilson ID Pro Inicializado", "success");
+}
+
+function loadInitial() {
+    if (typeof initialData !== 'undefined') {
+        products = initialData.products || [];
+        highlights = initialData.highlights || [];
+    }
 }
 
 async function loadData() {
@@ -60,9 +74,13 @@ async function saveData() {
 }
 
 function updateStats() {
-    document.getElementById('stat-total').textContent = products.length;
-    document.getElementById('badge-highlights').textContent = `${highlights.length} itens`;
-    document.getElementById('stat-session').textContent = sessionStorage.getItem('print_count') || 0;
+    const totalEl = document.getElementById('stat-total');
+    const highEl = document.getElementById('badge-highlights');
+    const sessEl = document.getElementById('stat-session');
+    
+    if (totalEl) totalEl.textContent = products.length;
+    if (highEl) highEl.textContent = `${highlights.length} itens`;
+    if (sessEl) sessEl.textContent = sessionStorage.getItem('print_count') || 0;
 }
 
 // FILTROS
@@ -74,6 +92,7 @@ function setupFilters() {
         { id: 'mp', label: 'Matéria Prima', keywords: ['AROMA', 'CORANTE', 'POLPA', 'AMIDO', 'SAL', 'AÇUCAR', 'VINAGRE'] }
     ];
 
+    if (!filterContainer) return;
     filterContainer.innerHTML = '';
     filters.forEach(f => {
         const btn = document.createElement('button');
@@ -91,28 +110,32 @@ function setupFilters() {
 
 // RENDERIZAÇÃO
 function render(query = '') {
+    if (!productsGrid || !highlightsGrid) return;
+    
     productsGrid.innerHTML = '';
     highlightsGrid.innerHTML = '';
 
     const queryWords = query.toLowerCase().split(' ').filter(w => w.length > 0);
     
     let filtered = products.filter(p => {
-        const text = (p.codigo + ' ' + p.produto).toLowerCase();
+        const code = p.codigo || "";
+        const prod = p.produto || "";
+        const text = (code + ' ' + prod).toLowerCase();
         const matchesQuery = queryWords.length === 0 || queryWords.every(word => text.includes(word));
         
         if (!matchesQuery) return false;
 
         if (currentFilter === 'all') return true;
-        if (currentFilter === 'cx') return p.produto.includes('CX');
-        if (currentFilter === 'frascos') return p.produto.includes('FRASCO');
+        if (currentFilter === 'cx') return prod.includes('CX');
+        if (currentFilter === 'frascos') return prod.includes('FRASCO');
         if (currentFilter === 'mp') {
             const mpKeywords = ['AROMA', 'CORANTE', 'POLPA', 'AMIDO', 'SAL', 'AÇUCAR', 'VINAGRE'];
-            return mpKeywords.some(k => p.produto.includes(k));
+            return mpKeywords.some(k => prod.includes(k));
         }
         return true;
     });
 
-    filtered.sort((a, b) => a.produto.localeCompare(b.produto));
+    filtered.sort((a, b) => (a.produto || "").localeCompare(b.produto || ""));
 
     filtered.forEach(p => {
         const card = createCard(p);
@@ -125,10 +148,12 @@ function render(query = '') {
     });
 
     const highlightsSection = document.getElementById('section-highlights');
-    if (highlights.length === 0 || currentView === 'favorites' || query !== '' || currentFilter !== 'all') {
-        highlightsSection.classList.add('hidden');
-    } else {
-        highlightsSection.classList.remove('hidden');
+    if (highlightsSection) {
+        if (highlights.length === 0 || currentView === 'favorites' || query !== '' || currentFilter !== 'all') {
+            highlightsSection.classList.add('hidden');
+        } else {
+            highlightsSection.classList.remove('hidden');
+        }
     }
 
     rebindCardEvents();
@@ -249,11 +274,14 @@ async function toggleHighlight() {
 
 // EVENT LISTENERS
 function setupEventListeners() {
-    searchInput.oninput = (e) => render(e.target.value);
+    if (searchInput) {
+        searchInput.oninput = (e) => render(e.target.value);
+    }
+    
     window.onkeydown = (e) => {
         if (e.key === '/' && document.activeElement !== searchInput) {
             e.preventDefault();
-            searchInput.focus();
+            if (searchInput) searchInput.focus();
         }
         if (e.key === 'Escape') closeModal();
     };
@@ -265,62 +293,89 @@ function setupEventListeners() {
             item.classList.add('active');
             currentView = item.dataset.view;
             render();
-            if (window.innerWidth <= 768) document.getElementById('app-sidebar').classList.remove('open');
+            const sidebar = document.getElementById('app-sidebar');
+            if (window.innerWidth <= 768 && sidebar) sidebar.classList.remove('open');
         };
     });
 
-    document.getElementById('mobile-menu-toggle').onclick = () => {
-        document.getElementById('app-sidebar').classList.toggle('open');
-    };
+    const mobileToggle = document.getElementById('mobile-menu-toggle');
+    if (mobileToggle) {
+        mobileToggle.onclick = () => {
+            const sidebar = document.getElementById('app-sidebar');
+            if (sidebar) sidebar.classList.toggle('open');
+        };
+    }
 
-    document.getElementById('sidebar-add-btn').onclick = () => {
-        selectedProduct = null;
-        document.getElementById('product-modal-title').textContent = "Novo Material";
-        document.getElementById('prod-code').value = "";
-        document.getElementById('prod-name').value = "";
-        modalProductForm.classList.remove('hidden');
-    };
+    const sidebarAddBtn = document.getElementById('sidebar-add-btn');
+    if (sidebarAddBtn) {
+        sidebarAddBtn.onclick = () => {
+            selectedProduct = null;
+            document.getElementById('product-modal-title').textContent = "Novo Material";
+            document.getElementById('prod-code').value = "";
+            document.getElementById('prod-name').value = "";
+            modalProductForm.classList.remove('hidden');
+        };
+    }
 
-    document.getElementById('sidebar-export-btn').onclick = () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({products, highlights}));
-        const a = document.createElement('a');
-        a.href = dataStr;
-        a.download = "backup_wilson_id.json";
-        a.click();
-        showToast("Backup exportado");
-    };
+    const sidebarExportBtn = document.getElementById('sidebar-export-btn');
+    if (sidebarExportBtn) {
+        sidebarExportBtn.onclick = () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({products, highlights}));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = "backup_wilson_id.json";
+            a.click();
+            showToast("Backup exportado");
+        };
+    }
 
-    document.getElementById('theme-light').onclick = () => {
-        document.body.className = 'theme-light';
-        document.getElementById('theme-light').classList.add('active');
-        document.getElementById('theme-dark').classList.remove('active');
-    };
-    document.getElementById('theme-dark').onclick = () => {
-        document.body.className = 'theme-dark';
-        document.getElementById('theme-dark').classList.add('active');
-        document.getElementById('theme-light').classList.remove('active');
-    };
+    const themeLight = document.getElementById('theme-light');
+    if (themeLight) {
+        themeLight.onclick = () => {
+            document.body.className = 'theme-light';
+            themeLight.classList.add('active');
+            const themeDark = document.getElementById('theme-dark');
+            if (themeDark) themeDark.classList.remove('active');
+        };
+    }
+    
+    const themeDark = document.getElementById('theme-dark');
+    if (themeDark) {
+        themeDark.onclick = () => {
+            document.body.className = 'theme-dark';
+            themeDark.classList.add('active');
+            const themeLight = document.getElementById('theme-light');
+            if (themeLight) themeLight.classList.remove('active');
+        };
+    }
 
     document.querySelectorAll('.close-modal, .close-modal-fs').forEach(btn => {
         btn.onclick = closeModal;
     });
 
-    document.getElementById('btn-open-form').onclick = openPrintForm;
+    const btnOpenForm = document.getElementById('btn-open-form');
+    if (btnOpenForm) btnOpenForm.onclick = openPrintForm;
 
-    document.getElementById('btn-show-code').onclick = () => {
-        closeModal();
-        document.getElementById('display-code-fs').textContent = selectedProduct.codigo;
-        document.getElementById('display-name-fs').textContent = selectedProduct.produto;
-        modalCode.classList.remove('hidden');
-    };
+    const btnShowCode = document.getElementById('btn-show-code');
+    if (btnShowCode) {
+        btnShowCode.onclick = () => {
+            closeModal();
+            document.getElementById('display-code-fs').textContent = selectedProduct.codigo;
+            document.getElementById('display-name-fs').textContent = selectedProduct.produto;
+            modalCode.classList.remove('hidden');
+        };
+    }
 
-    document.getElementById('btn-edit-product-trigger').onclick = () => {
-        document.getElementById('product-modal-title').textContent = "Editar Material";
-        document.getElementById('prod-code').value = selectedProduct.codigo;
-        document.getElementById('prod-name').value = selectedProduct.produto;
-        closeModal();
-        modalProductForm.classList.remove('hidden');
-    };
+    const btnEditProductTrigger = document.getElementById('btn-edit-product-trigger');
+    if (btnEditProductTrigger) {
+        btnEditProductTrigger.onclick = () => {
+            document.getElementById('product-modal-title').textContent = "Editar Material";
+            document.getElementById('prod-code').value = selectedProduct.codigo;
+            document.getElementById('prod-name').value = selectedProduct.produto;
+            closeModal();
+            modalProductForm.classList.remove('hidden');
+        };
+    }
 
     // Botão de destaque no modal de ação
     if (!document.getElementById('btn-toggle-highlight')) {
@@ -328,18 +383,29 @@ function setupEventListeners() {
         btnHighlight.id = 'btn-toggle-highlight';
         btnHighlight.className = 'action-card-v2';
         btnHighlight.onclick = toggleHighlight;
-        document.querySelector('.action-grid-v2').appendChild(btnHighlight);
+        const actionGrid = document.querySelector('.action-grid-v2');
+        if (actionGrid) actionGrid.appendChild(btnHighlight);
     }
 
-    document.getElementById('btn-delete-product-trigger').onclick = handleDeleteProduct;
-    document.getElementById('btn-save-product').onclick = handleSaveProduct;
-    document.getElementById('btn-copy-code').onclick = () => {
-        navigator.clipboard.writeText(selectedProduct.codigo);
-        showToast("Código copiado", "success");
-    };
+    const btnDeleteProductTrigger = document.getElementById('btn-delete-product-trigger');
+    if (btnDeleteProductTrigger) btnDeleteProductTrigger.onclick = handleDeleteProduct;
+    
+    const btnSaveProduct = document.getElementById('btn-save-product');
+    if (btnSaveProduct) btnSaveProduct.onclick = handleSaveProduct;
+    
+    const btnCopyCode = document.getElementById('btn-copy-code');
+    if (btnCopyCode) {
+        btnCopyCode.onclick = () => {
+            navigator.clipboard.writeText(selectedProduct.codigo);
+            showToast("Código copiado", "success");
+        };
+    }
 
-    document.getElementById('btn-generate-print').onclick = generatePrint;
-    document.getElementById('close-print').onclick = () => printArea.classList.add('hidden');
+    const btnGeneratePrint = document.getElementById('btn-generate-print');
+    if (btnGeneratePrint) btnGeneratePrint.onclick = generatePrint;
+    
+    const closePrint = document.getElementById('close-print');
+    if (closePrint) closePrint.onclick = () => printArea.classList.add('hidden');
 }
 
 // IMPRESSÃO
@@ -351,7 +417,8 @@ const prefixCount = 2;
 
     const prefixo = palavras.slice(0, prefixCount).join(' ');
     const resto = palavras.slice(prefixCount).join(' ');
-    const opType = document.querySelector('input[name="op-type"]:checked').value;
+    const opTypeInput = document.querySelector('input[name="op-type"]:checked');
+    const opType = opTypeInput ? opTypeInput.value : "recebimento";
     const nf = document.getElementById('input-nf').value || "---";
     const qty = document.getElementById('input-qty').value || "---";
     const lote = document.getElementById('input-lote').value || "---";
@@ -363,22 +430,35 @@ const prefixCount = 2;
         valFormatted = `${p[2]}/${p[1]}/${p[0]}`; 
     }
 
-    document.getElementById('print-date').textContent = new Date().toLocaleDateString('pt-BR');
-    document.getElementById('print-code').textContent = selectedProduct.codigo;
-    document.getElementById('print-product-prefix').textContent = prefixo;
-    document.getElementById('print-product-rest').textContent = resto;
-    document.getElementById('print-product').textContent = selectedProduct.produto;
-    document.getElementById('print-qty').textContent = qty;
-    document.getElementById('print-lote').textContent = lote;
-    document.getElementById('print-validade').textContent = valFormatted;
-    document.getElementById('print-nf').textContent = nf;
-    document.getElementById('print-day-lot').textContent = String(getDayOfYear()).padStart(3, '0');
+    const printDate = document.getElementById('print-date');
+    const printCode = document.getElementById('print-code');
+    const printPrefix = document.getElementById('print-product-prefix');
+    const printRest = document.getElementById('print-product-rest');
+    const printProd = document.getElementById('print-product');
+    const printQty = document.getElementById('print-qty');
+    const printLote = document.getElementById('print-lote');
+    const printVal = document.getElementById('print-validade');
+    const printNf = document.getElementById('print-nf');
+    const printDayLot = document.getElementById('print-day-lot');
 
-    document.getElementById('box-rec').classList.toggle('checked', opType === 'recebimento');
-    document.getElementById('box-dev').classList.toggle('checked', opType === 'devolucao');
+    if (printDate) printDate.textContent = new Date().toLocaleDateString('pt-BR');
+    if (printCode) printCode.textContent = selectedProduct.codigo;
+    if (printPrefix) printPrefix.textContent = prefixo;
+    if (printRest) printRest.textContent = resto;
+    if (printProd) printProd.textContent = selectedProduct.produto;
+    if (printQty) printQty.textContent = qty;
+    if (printLote) printLote.textContent = lote;
+    if (printVal) printVal.textContent = valFormatted;
+    if (printNf) printNf.textContent = nf;
+    if (printDayLot) printDayLot.textContent = String(getDayOfYear()).padStart(3, '0');
+
+    const boxRec = document.getElementById('box-rec');
+    const boxDev = document.getElementById('box-dev');
+    if (boxRec) boxRec.classList.toggle('checked', opType === 'recebimento');
+    if (boxDev) boxDev.classList.toggle('checked', opType === 'devolucao');
 
     closeModal();
-    printArea.classList.remove('hidden');
+    if (printArea) printArea.classList.remove('hidden');
     
     let count = parseInt(sessionStorage.getItem('print_count') || 0) + 1;
     sessionStorage.setItem('print_count', count);
@@ -412,6 +492,7 @@ function adjustProductFontSize() {
 // TOAST
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     const icon = type === 'success' ? 'ri-checkbox-circle-fill' : (type === 'error' ? 'ri-error-warning-fill' : 'ri-information-fill');
@@ -448,14 +529,16 @@ function physicsLoop() {
 }
 physicsLoop();
 
-overlay.addEventListener('mousedown', (e) => {
-    if (e.target === overlay || e.target === sheet) {
-        isDragging = true;
-        startX = e.clientX; startY = e.clientY;
-        if (sheet) sheet.style.transition = "none";
-        clearTimeout(resetTimer);
-    }
-});
+if (overlay) {
+    overlay.addEventListener('mousedown', (e) => {
+        if (e.target === overlay || e.target === sheet) {
+            isDragging = true;
+            startX = e.clientX; startY = e.clientY;
+            if (sheet) sheet.style.transition = "none";
+            clearTimeout(resetTimer);
+        }
+    });
+}
 
 window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
@@ -481,11 +564,14 @@ window.addEventListener('mouseup', () => {
     }
 });
 
-overlay.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    currentZoom += e.deltaY * -0.0008;
-    currentZoom = Math.max(0.3, Math.min(1.8, currentZoom));
-    applyTransform();
-}, { passive: false });
+if (overlay) {
+    overlay.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        currentZoom += e.deltaY * -0.0008;
+        currentZoom = Math.max(0.3, Math.min(1.8, currentZoom));
+        applyTransform();
+    }, { passive: false });
+}
 
+// Inicializar
 init();
